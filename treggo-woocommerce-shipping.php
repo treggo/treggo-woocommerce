@@ -79,7 +79,6 @@ class Treggo_WooCommerce_Shipping {
             'phone' => $order->get_billing_phone()
         );
         if (json_encode($updated_order) != json_encode($this->order)) {
-            error_log('cambio');
             include_once('includes/class-treggo-shipping-method.php');
             $Treggo_Shipping_Method = new Treggo_Shipping_Method();
             $Treggo_Shipping_Method->init();

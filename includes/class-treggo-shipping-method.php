@@ -172,13 +172,12 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
             ));
         }
 
-        error_log(json_encode($isTreggo));
-
         if ($this->settings['all'] == 'yes' || $isTreggo) {
             $payload = array(
                 'email' => get_option('admin_email'),
                 'dominio' => get_option('siteurl'),
                 'order' => array(
+                    'status' => $order->status,
                     'payment_method' => array(
                         'code' => $order->get_payment_method(),
                         'title' => $order->get_payment_method_title()
@@ -189,8 +188,6 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
                     'phone' => $order->get_billing_phone()
                 )
             );
-
-            error_log(print_r($payload, true));
 
             $args = array(
                 'body' => json_encode($payload),
