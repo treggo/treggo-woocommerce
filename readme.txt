@@ -1,11 +1,11 @@
 === Treggo Shipping for WooCommerce ===
-Contributors: Nicolas A. Torchio
+Contributors: Nicolas A. Torchio, Rockstar Solutions
 Tags: woocommerce, shipping, argentina, treggo, ecommerce, delivery
 Requires at least: 4.6
-Tested up to: 4.7
-Stable tag: 1.8
-License: GPLv2 or later
-License URI: https://www.gnu.org/licenses/gpl-2.0.html
+Tested up to: 5.4.2
+Stable tag: 2.0
+License: GPLv3 or later
+License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
 Plugin for shipping via Treggo for WooCommerce
 
@@ -13,9 +13,15 @@ Plugin for shipping via Treggo for WooCommerce
 
 Si tenes tu plataforma de WooCommerce en Argentina no dudes en incorporar nuestra herramienta de shipping inmediato de Treggo
 
-Para darte de alta accede a http://empresas.treggocity.com/ e inscribite como empresas, nos contactaremos a la brevedad para darte la API de conexion o mandanos un mail a hola@treggocity.com y nos contactaremos
+Para darte de alta accede a http://empresas.treggocity.com/ e inscribite como empresa, nos contactaremos a la brevedad para darte la API de conexion o mandanos un mail a hola@treggocity.com y nos contactaremos
 
 == Changelog ==
+
+= 2.0 =
+* Refactor completo
+* Integración de nuevo endpoint E-Commerce
+* Mejoras en manejo de errores
+
 = 1.7 =
 * Solucion a errores varios
 
