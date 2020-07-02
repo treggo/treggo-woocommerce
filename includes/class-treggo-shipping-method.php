@@ -185,7 +185,8 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
                     'items' => $items,
                     'shipments' => $shipments,
                     'customer_note' => $order->get_customer_note(),
-                    'phone' => $order->get_billing_phone()
+                    'phone' => $order->get_billing_phone(),
+                    'shipping' => $order->get_address('shipping')
                 )
             );
 
