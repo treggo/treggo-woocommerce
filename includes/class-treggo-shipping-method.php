@@ -177,7 +177,7 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
                 'email' => get_option('admin_email'),
                 'dominio' => get_option('siteurl'),
                 'order' => array(
-                    'status' => $order->status,
+                    'status' => $order->get_status(),
                     'payment_method' => array(
                         'code' => $order->get_payment_method(),
                         'title' => $order->get_payment_method_title()

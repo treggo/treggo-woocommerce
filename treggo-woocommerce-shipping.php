@@ -65,7 +65,7 @@ class Treggo_WooCommerce_Shipping {
         $order = new WC_Order($order_id);
         $this->order = array(
             'shipping' => $order->get_address('shipping'),
-            'status' => $order->status,
+            'status' => $order->get_status(),
             'phone' => $order->get_billing_phone()
         );
     }
@@ -75,7 +75,7 @@ class Treggo_WooCommerce_Shipping {
         $order = new WC_Order($order_id);
         $updated_order = array(
             'shipping' => $order->get_address('shipping'),
-            'status' => $order->status,
+            'status' => $order->get_status(),
             'phone' => $order->get_billing_phone()
         );
         if (json_encode($updated_order) != json_encode($this->order)) {
