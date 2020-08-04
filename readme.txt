@@ -3,7 +3,7 @@ Contributors: treggo
 Tags: woocommerce, shipping, argentina, treggo, ecommerce, delivery
 Requires at least: 4.6
 Tested up to: 5.4.2
-Stable tag: 2.0
+Stable tag: 2.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Requires PHP: 5.6
@@ -17,6 +17,14 @@ Si tenes tu plataforma de WooCommerce en Argentina no dudes en incorporar nuestr
 Para darte de alta accede a http://empresas.treggocity.com/ e inscribite como empresa, nos contactaremos a la brevedad para darte la API de conexion o mandanos un mail a hola@treggocity.com y nos contactaremos
 
 == Changelog ==
+
+= 2.1 =
+* Agregado script de desinstalación
+* Agregada funcionalidad de imprimir etiquetas individuales y en bulk
+* Agregada compatibilidad de instancias y shipping-zones para poder ordenar el método de envío
+* Agregada configuración de título a mostrar en modo automático
+* Modificado comportamiento de multiplicador
+* Agregado mensaje de alerta al ocurrir un error en la instalación
 
 = 2.0 =
 * Refactor completo

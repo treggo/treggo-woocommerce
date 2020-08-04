@@ -5,13 +5,14 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
 
     private $endpoint = 'https://api.treggo.co/1/integrations/woocommerce';
 
-    public function __construct()
+    public function __construct($instance_id = 0)
     {
         $this->id = 'treggo';
+        $this->instance_id = absint($instance_id);
         $this->method_title = __('Treggo Shipping', 'treggo');
-        $this->method_description = __('Custom Shipping Method for Treggo', 'treggo');
-        $this->availability = 'including';
-        $this->countries = array('AR');
+        $this->method_description = __('Método de envío personalizado para Treggo', 'treggo');
+        $this->supports = array('shipping-zones', 'instance-settings');
+
         $this->init();
         $this->enabled = isset($this->settings['enabled']) ? $this->settings['enabled'] : 'yes';
         $this->title = isset($this->settings['title']) ? $this->settings['title'] : __('Treggo Shipping', 'treggo');
@@ -20,16 +21,13 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
     function init()
     {
         $this->init_form_fields();
-        $this->init_settings();
-        add_action('woocommerce_update_options_shipping_' . $this->id, array(
-            $this,
-            'process_admin_options'
-        ));
+        $this->init_instance_settings();
+        add_action('woocommerce_update_options_shipping_' . $this->id, array($this, 'process_admin_options'));
     }
 
     function init_form_fields()
     {
-        $this->form_fields = array(
+        $this->instance_form_fields = array(
             'enabled' => array(
                 'title' => __('Habilitado', 'treggo'),
                 'type' => 'checkbox',
@@ -47,11 +45,17 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
                 'type' => 'checkbox',
                 'default' => 'yes'
             ),
+            'title' => array(
+                'title' => __('Texto del método de envío automático', 'treggo'),
+                'type' => 'text',
+                'description' => __('Texto que verá el Comprador como método de envío', 'treggo'),
+                'default' => __('Envío rápido por Treggo', 'treggo')
+            ),
             'multiplicador' => array(
-                'title' => __('Variación del importe', 'treggo'),
+                'title' => __('Multiplicador del importe', 'treggo'),
                 'type' => 'number',
-                'description' => __('Afectar la cotización por el procentaje para agregar o quitar comisiones multiplicando el precio por este valor', 'treggo'),
-                'default' => 100
+                'description' => __('Afectar la cotización para agregar o quitar comisiones multiplicando el precio por este valor', 'treggo'),
+                'default' => 1
             ),
             't2' => array(
                 'title' => __('Método de envío manual', 'treggo'),
@@ -64,11 +68,11 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
                 'type' => 'checkbox',
                 'default' => 'no'
             ),
-            'title' => array(
-                'title' => __('Texto del método de envío', 'treggo'),
+            'manual_title' => array(
+                'title' => __('Texto del método de envío manual', 'treggo'),
                 'type' => 'text',
-                'description' => __('Texto que vera el Comprador como método de envío', 'treggo'),
-                'default' => __('envío rápido por Treggo', 'treggo')
+                'description' => __('Texto que verá el Comprador como método de envío', 'treggo'),
+                'default' => __('Envío rápido por Treggo', 'treggo')
             ),
             'price' => array(
                 'title' => __('Precio del envío', 'treggo'),
@@ -117,8 +121,8 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
                 if (!isset($rate->message)) {
                     $this->add_rate(array(
                         'id' => $this->id,
-                        'label' => $rate->service_name,
-                        'cost' => $rate->total_price * ($this->settings['multiplicador'] / 100),
+                        'label' => $this->settings['title'],
+                        'cost' => $rate->total_price * $this->settings['multiplicador'],
                         'calc_tax' => 'per_item'
                     ));
                 }
@@ -130,7 +134,7 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
         if ($this->settings['manual'] == 'yes') {
             $this->add_rate(array(
                 'id' => $this->id . '-z0',
-                'label' => $this->settings['title'],
+                'label' => $this->settings['manual_title'],
                 'cost' => $this->settings['price'],
                 'calc_tax' => 'per_item'
             ));
@@ -138,6 +142,39 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
     }
 
     public function treggo_notify($order)
+    {
+        $formattedOrder = $this->format_notification_order($order);
+
+        if ($this->settings['all'] == 'yes' || $formattedOrder !== false) {
+            $args = array(
+                'body' => json_encode(array(
+                    'email' => get_option('admin_email'),
+                    'dominio' => get_option('siteurl'),
+                    'order' => $formattedOrder
+                )),
+                'headers' => array(
+                    'Accept' => 'application/json',
+                    'Content-Type' => 'application/json'
+                )
+            );
+
+            try {
+                $response = wp_remote_post($this->endpoint . '/notifications', $args);
+                $body = wp_remote_retrieve_body($response);
+
+                $response = json_decode($body);
+                if (isset($response->message)) {
+                    $order->add_order_note($response->message);
+                } else {
+                    $order->add_order_note('Estado actualizado en Treggo');
+                }
+            } catch (\Exception $e) {
+                throw new \Exception('Error al comunicar con el servidor de Treggo: ' . $e->getMessage()); 
+            }
+        }
+    }
+
+    private function format_notification_order($order)
     {
         $items = [];
         foreach ($order->get_items() as $item) {
@@ -172,47 +209,22 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
             ));
         }
 
-        if ($this->settings['all'] == 'yes' || $isTreggo) {
-            $payload = array(
-                'email' => get_option('admin_email'),
-                'dominio' => get_option('siteurl'),
-                'order' => array(
-                    'status' => $order->get_status(),
-                    'payment_method' => array(
-                        'code' => $order->get_payment_method(),
-                        'title' => $order->get_payment_method_title()
-                    ),
-                    'items' => $items,
-                    'shipments' => $shipments,
-                    'customer_note' => $order->get_customer_note(),
-                    'phone' => $order->get_billing_phone(),
-                    'email' => $order->get_billing_email(),
-                    'shipping' => $order->get_address('shipping')
-                )
+        if ($isTreggo) {
+            return array(
+                'status' => $order->get_status(),
+                'payment_method' => array(
+                    'code' => $order->get_payment_method(),
+                    'title' => $order->get_payment_method_title()
+                ),
+                'items' => $items,
+                'shipments' => $shipments,
+                'customer_note' => $order->get_customer_note(),
+                'phone' => $order->get_billing_phone(),
+                'email' => $order->get_billing_email(),
+                'shipping' => $order->get_address('shipping')
             );
-
-            $args = array(
-                'body' => json_encode($payload),
-                'headers' => array(
-                    'Accept' => 'application/json',
-                    'Content-Type' => 'application/json'
-                )
-            );
-
-            try {
-                $response = wp_remote_post($this->endpoint . '/notifications', $args);
-                $body = wp_remote_retrieve_body($response);
-
-                $response = json_decode($body);
-                if (isset($response->message)) {
-                    $order->add_order_note($response->message);
-                }
-                else {
-                    $order->add_order_note('Estado actualizado en Treggo');
-                }
-            } catch (\Exception $e) {
-                throw new \Exception('Error al comunicar con el servidor de Treggo: ' . $e->getMessage()); 
-            }
+        } else {
+            return false;
         }
     }
 
@@ -251,6 +263,46 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
             $response = wp_remote_post($this->endpoint . '/signup', $args);
         } catch (\Exception $e) {
             return;
+        }
+    }
+
+    public function treggo_print_tags($orders)
+    {
+        foreach ($orders as $key => $order) {
+            $formattedOrder = $this->format_notification_order($order);
+            if ($formattedOrder !== false) {
+                $orders[$key] = $formattedOrder;
+            } else {
+                unset($orders[$key]);
+            }
+        }
+
+        if (count($orders) > 0) {
+            $args = array(
+                'body' => json_encode(array(
+                    'email' => get_option('admin_email'),
+                    'dominio' => get_option('siteurl'),
+                    'orders' => $orders,
+                    'type' => 'a4'
+                )),
+                'headers' => array(
+                    'Content-Type' => 'application/json'
+                )
+            );
+
+            try {
+                $response = wp_remote_post($this->endpoint . '/tags', $args);
+                $body = wp_remote_retrieve_body($response);
+
+                $filename = 'treggo-etiquetas-' . date('Ymd') . '.pdf';
+
+                header("Content-type: application/pdf");
+                header("Content-Disposition: attachment; filename={$filename}");
+                echo $body;
+                exit;
+            } catch (\Exception $e) {
+                throw new \Exception('Error al comunicar con el servidor de Treggo: ' . $e->getMessage()); 
+            }
         }
     }
 

@@ -4,7 +4,7 @@
  * Plugin Name: Treggo Shipping
  * Plugin URI: https://treggo.co
  * Description: Custom Shipping Method for Treggo for WooCommerce
- * Version: 2.0
+ * Version: 2.1
  * Author: Treggo.Co
  * Author URI: https://treggo.co
  * License: GPL-3.0+
@@ -15,12 +15,20 @@
 
 // Check direct access
 if (!defined('ABSPATH') || !defined('WPINC')) {
-    exit;
+    function treggo_no_direct_access() {
+      die(__('Se produjo un error al acceder a constantes necesarias para la operabilidad del plugin', 'treggo'));
+    }
+    register_activation_hook( __FILE__, 'treggo_no_direct_access');
+    return;
 }
 
 // Check WooCommerce enabled
 if (!in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_option('active_plugins')))) {
-    exit;
+    function treggo_no_woocommerce_installed() {
+      die(__('No se detectó la instalación del plugin WooCommerce, necesario para la operabilidad de este plugin', 'treggo'));
+    }
+    register_activation_hook( __FILE__, 'treggo_no_woocommerce_installed');
+    return;
 }
 
 class Treggo_WooCommerce_Shipping {
@@ -35,6 +43,14 @@ class Treggo_WooCommerce_Shipping {
         add_action('woocommerce_process_shop_order_meta', array($this, 'treggo_order_updated_before'), 1, 2);
         add_action('woocommerce_process_shop_order_meta', array($this, 'treggo_order_updated_after'), 60, 2);
 
+        // Single order print action
+        add_action('woocommerce_order_actions', array($this, 'treggo_add_print_single_tag_action'));
+        add_action('woocommerce_order_action_treggo_print_single_tag', array($this, 'treggo_print_single_tag_action'));
+
+        // Bulk order print action
+        add_filter('bulk_actions-edit-shop_order', array($this, 'treggo_add_print_bulk_tag_action'), 20, 1);
+        add_filter('handle_bulk_actions-edit-shop_order', array($this, 'treggo_print_bulk_tag_action'), 10, 3);
+
         // Sign up
         register_activation_hook(__FILE__, array($this, 'treggo_installed'));
         add_action('admin_init', array($this, 'treggo_signup'));
@@ -47,7 +63,7 @@ class Treggo_WooCommerce_Shipping {
 
     function treggo_shipping_add($methods)
     {
-        $methods[] = 'Treggo_Shipping_Method';
+        $methods['treggo'] = 'Treggo_Shipping_Method';
         return $methods;
     }
 
@@ -55,7 +71,14 @@ class Treggo_WooCommerce_Shipping {
     {
         $order = new WC_Order($order_id);
         include_once('includes/class-treggo-shipping-method.php');
-        $Treggo_Shipping_Method = new Treggo_Shipping_Method();
+
+        $instance_id = 0;
+        $shipping_methods = $order->get_shipping_methods();
+        if (count($shipping_methods) > 0) {
+            $instance_id = $shipping_methods[array_keys($shipping_methods)[0]]->get_instance_id();
+        }
+
+        $Treggo_Shipping_Method = new Treggo_Shipping_Method($instance_id);
         $Treggo_Shipping_Method->init();
         $Treggo_Shipping_Method->treggo_notify($order);
     }
@@ -80,7 +103,14 @@ class Treggo_WooCommerce_Shipping {
         );
         if (json_encode($updated_order) != json_encode($this->order)) {
             include_once('includes/class-treggo-shipping-method.php');
-            $Treggo_Shipping_Method = new Treggo_Shipping_Method();
+
+            $instance_id = 0;
+            $shipping_methods = $order->get_shipping_methods();
+            if (count($shipping_methods) > 0) {
+                $instance_id = $shipping_methods[array_keys($shipping_methods)[0]]->get_instance_id();
+            }
+
+            $Treggo_Shipping_Method = new Treggo_Shipping_Method($instance_id);
             $Treggo_Shipping_Method->init();
             $Treggo_Shipping_Method->treggo_notify($order);
         }
@@ -88,14 +118,14 @@ class Treggo_WooCommerce_Shipping {
 
     function treggo_installed()
     {
-        add_option('Treggo_Installed', 'yes');
+        add_option('Treggo_New_Installation', 'yes');
     }
 
     function treggo_signup()
     {
-        if (is_admin() && get_option('Treggo_Installed') == 'yes')
+        if (is_admin() && get_option('Treggo_New_Installation') == 'yes')
         {
-            delete_option('Treggo_Installed');
+            delete_option('Treggo_New_Installation');
 
             include_once('includes/class-treggo-shipping-method.php');
 
@@ -103,6 +133,65 @@ class Treggo_WooCommerce_Shipping {
             $Treggo_Shipping_Method->init();
             $Treggo_Shipping_Method->treggo_signup();
         }
+    }
+
+    function treggo_add_print_single_tag_action($actions)
+    {
+        $actions['treggo_print_single_tag'] = __('Treggo - Imprimir etiqueta', 'treggo');
+        return $actions;
+    }
+
+    function treggo_print_single_tag_action($order_id)
+    {
+        $order = new WC_Order($order_id);
+        include_once('includes/class-treggo-shipping-method.php');
+
+        $instance_id = 0;
+        $shipping_methods = $order->get_shipping_methods();
+        if (count($shipping_methods) > 0) {
+            $instance_id = $shipping_methods[array_keys($shipping_methods)[0]]->get_instance_id();
+        }
+
+        $Treggo_Shipping_Method = new Treggo_Shipping_Method($instance_id);
+        $Treggo_Shipping_Method->init();
+        $Treggo_Shipping_Method->treggo_print_tags([$order]);
+    }
+
+    function treggo_add_print_bulk_tag_action($bulk_actions)
+    {
+        $bulk_actions['treggo_print_bulk_tag'] = __('Treggo - Imprimir etiquetas', 'treggo');
+        return $bulk_actions;
+    }
+
+    function treggo_print_bulk_tag_action($redirect_to, $action, $post_ids)
+    {
+
+        if ($action === 'treggo_print_bulk_tag') {
+            $processed_ids = array();
+            $orders = array();
+            $instance_id = 0;
+
+            foreach ($post_ids as $post_id) {
+                $order = new WC_Order($post_id);
+
+                if ($instance_id === 0) {
+                    $shipping_methods = $order->get_shipping_methods();
+                    if (count($shipping_methods) > 0) {
+                        $instance_id = $shipping_methods[array_keys($shipping_methods)[0]]->get_instance_id();
+                    }
+                }
+
+                $processed_ids[] = $order->get_id();
+                $orders[] = $order;
+            }
+
+            include_once('includes/class-treggo-shipping-method.php');
+
+            $Treggo_Shipping_Method = new Treggo_Shipping_Method($instance_id);
+            $Treggo_Shipping_Method->init();
+            $Treggo_Shipping_Method->treggo_print_tags($orders);
+        }
+        return $redirect_to;
     }
 
 }
