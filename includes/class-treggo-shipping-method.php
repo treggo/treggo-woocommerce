@@ -197,7 +197,6 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
         $shipments = [];
         $isTreggo = false;
         foreach ($order->get_items('shipping') as $item) {
-            error_log($item['method_id']);
             if ($item['method_id'] == 'treggo') {
                 $isTreggo = true;
             }
