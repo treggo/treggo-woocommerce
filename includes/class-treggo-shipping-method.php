@@ -14,8 +14,8 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
         $this->supports = array('shipping-zones', 'instance-settings');
 
         $this->init();
-        $this->enabled = isset($this->settings['enabled']) ? $this->settings['enabled'] : 'yes';
-        $this->title = isset($this->settings['title']) ? $this->settings['title'] : __('Treggo Shipping', 'treggo');
+        $this->enabled = $this->get_instance_option('enabled') !== null ? $this->get_instance_option('enabled') : 'yes';
+        $this->title = $this->get_instance_option('title') !== null ? $this->get_instance_option('title') : __('Treggo Shipping', 'treggo');
     }
 
     function init()
@@ -96,7 +96,7 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
 
     public function calculate_shipping($package = Array())
     {
-        if ($this->settings['automatic'] == 'yes') {
+        if ($this->get_instance_option('automatic') == 'yes') {
             $payload = array(
                 'email' => get_option('admin_email'),
                 'dominio' => get_option('siteurl'),
@@ -121,8 +121,8 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
                 if (!isset($rate->message)) {
                     $this->add_rate(array(
                         'id' => $this->id,
-                        'label' => $this->settings['title'],
-                        'cost' => $rate->total_price * $this->settings['multiplicador'],
+                        'label' => $this->get_instance_option('title'),
+                        'cost' => $rate->total_price * $this->get_instance_option('multiplicador'),
                         'calc_tax' => 'per_item'
                     ));
                 }
@@ -131,11 +131,11 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
             }
         }
 
-        if ($this->settings['manual'] == 'yes') {
+        if ($this->get_instance_option('manual') == 'yes') {
             $this->add_rate(array(
                 'id' => $this->id . '-z0',
-                'label' => $this->settings['manual_title'],
-                'cost' => $this->settings['price'],
+                'label' => $this->get_instance_option('manual_title'),
+                'cost' => $this->get_instance_option('price'),
                 'calc_tax' => 'per_item'
             ));
         }
@@ -145,7 +145,7 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
     {
         $formattedOrder = $this->format_notification_order($order);
 
-        if ($this->settings['all'] == 'yes' || $formattedOrder !== false) {
+        if ($this->get_instance_option('all') == 'yes' || $formattedOrder !== false) {
             $args = array(
                 'body' => json_encode(array(
                     'email' => get_option('admin_email'),
@@ -197,6 +197,7 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
         $shipments = [];
         $isTreggo = false;
         foreach ($order->get_items('shipping') as $item) {
+            error_log($item['method_id']);
             if ($item['method_id'] == 'treggo') {
                 $isTreggo = true;
             }
