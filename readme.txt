@@ -19,9 +19,10 @@ Para darte de alta accede a http://empresas.treggocity.com/ e inscribite como em
 == Changelog ==
 
 = 2.1 =
+* Agregada página de bienvenida
 * Agregado script de desinstalación
 * Agregada funcionalidad de imprimir etiquetas individuales y en bulk
-* Agregada compatibilidad de instancias y shipping-zones para poder ordenar el método de envío
+* Agregada compatibilidad shipping-zones para poder ordenar el método de envío
 * Agregada configuración de título a mostrar en modo automático
 * Modificado comportamiento de multiplicador
 * Agregado mensaje de alerta al ocurrir un error en la instalación

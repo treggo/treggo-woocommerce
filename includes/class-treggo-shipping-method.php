@@ -5,31 +5,37 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
 
     private $endpoint = 'https://api.treggo.co/1/integrations/woocommerce';
 
-    public function __construct($instance_id = 0)
+    public function __construct()
     {
         $this->id = 'treggo';
-        $this->instance_id = absint($instance_id);
         $this->method_title = __('Treggo Shipping', 'treggo');
         $this->method_description = __('Método de envío personalizado para Treggo', 'treggo');
-        $this->supports = array('shipping-zones', 'instance-settings');
+        $this->supports = array('shipping-zones', 'settings');
 
         $this->init();
-        $this->enabled = $this->get_instance_option('enabled') !== null ? $this->get_instance_option('enabled') : 'yes';
-        $this->title = $this->get_instance_option('title') !== null ? $this->get_instance_option('title') : __('Treggo Shipping', 'treggo');
+        $this->enabled = isset($this->settings['enabled']) ? $this->settings['enabled'] : 'yes';
+        $this->title = __('Treggo Shipping', 'treggo');
     }
 
     function init()
     {
         $this->init_form_fields();
-        $this->init_instance_settings();
+        $this->init_settings();
         add_action('woocommerce_update_options_shipping_' . $this->id, array($this, 'process_admin_options'));
     }
 
     function init_form_fields()
     {
-        $this->instance_form_fields = array(
+        $this->form_fields = array(
+            'info' => array(
+                'title' => __('( ! ) No podrás utilizar este método de envío hasta que haya un acuerdo comercial sobre las coberturas.', 'treggo'),
+                'type' => 'title',
+                'default' => 'yes',
+                'class' => 'treggo-info'
+            ),
             'enabled' => array(
-                'title' => __('Habilitado', 'treggo'),
+                'title' => __('Estado', 'treggo'),
+                'label' => __('Habilitado', 'treggo'),
                 'type' => 'checkbox',
                 'description' => __('Habilitar el funcionamiento de Treggo para esta tienda', 'treggo'),
                 'default' => 'yes'
@@ -37,7 +43,7 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
             't1' => array(
                 'title' => __('Métodos de envío automáticos', 'treggo'),
                 'type' => 'title',
-                'description' => __('Agregar los metodos de envios configurados por Treggo para la cuenta (Nota: Para setear las zonas por favor contactarse con hola@treggocity.com)', 'treggo'),
+                'description' => __('Agregar los metodos de envios configurados por Treggo para la cuenta', 'treggo'),
                 'default' => 'yes'
             ),
             'automatic' => array(
@@ -76,7 +82,7 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
             ),
             'price' => array(
                 'title' => __('Precio del envío', 'treggo'),
-                'type' => 'number',
+                'type' => 'price',
                 'description' => __('Importe a cobrar si el Comprador elige Treggo', 'treggo'),
                 'default' => '250'
             ),
@@ -90,13 +96,48 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
                 'title' => __('Habilitado', 'treggo'),
                 'type' => 'checkbox',
                 'default' => 'no'
-            )
+            ),
+            't4' => array(
+                'title' => __('Impresión de etiquetas', 'treggo'),
+                'type' => 'title',
+                'description' => __('Formatos de generación de etiquetas', 'treggo'),
+                'default' => 'yes'
+            ),
+            'tags_type_a4' => array(
+                'title' => __('A4 PDF', 'treggo'),
+                'label' => __('Habilitado', 'treggo'),
+                'type' => 'checkbox',
+                'default' => 'yes'
+            ),
+            'tags_type_cebra' => array(
+                'title' => __('Cebra PDF', 'treggo'),
+                'label' => __('Habilitado', 'treggo'),
+                'type' => 'checkbox',
+                'default' => 'yes'
+            ),
+            'tags_type_zpl' => array(
+                'title' => __('Cebra ZPL', 'treggo'),
+                'label' => __('Habilitado', 'treggo'),
+                'type' => 'checkbox',
+                'default' => 'yes'
+            ),
+            /*'tags_type' => array(
+                'title' => __('Formato', 'treggo'),
+                'type' => 'select',
+                'description' => __('Formato en el que se solicitarán las etiquetas', 'treggo'),
+                'default' => 'a4',
+                'options' => array(
+                    'a4' => 'A4 - PDF',
+                    'cebra' => 'Cebra - PDF',
+                    'zpl' => 'Cebra - ZPL'
+                )
+            )*/
         );
     }
 
     public function calculate_shipping($package = Array())
     {
-        if ($this->get_instance_option('automatic') == 'yes') {
+        if ($this->settings['automatic'] == 'yes') {
             $payload = array(
                 'email' => get_option('admin_email'),
                 'dominio' => get_option('siteurl'),
@@ -121,8 +162,8 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
                 if (!isset($rate->message)) {
                     $this->add_rate(array(
                         'id' => $this->id,
-                        'label' => $this->get_instance_option('title'),
-                        'cost' => $rate->total_price * $this->get_instance_option('multiplicador'),
+                        'label' => $this->settings['title'],
+                        'cost' => $rate->total_price * $this->settings['multiplicador'],
                         'calc_tax' => 'per_item'
                     ));
                 }
@@ -131,11 +172,11 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
             }
         }
 
-        if ($this->get_instance_option('manual') == 'yes') {
+        if ($this->settings['manual'] == 'yes') {
             $this->add_rate(array(
                 'id' => $this->id . '-z0',
-                'label' => $this->get_instance_option('manual_title'),
-                'cost' => $this->get_instance_option('price'),
+                'label' => $this->settings['manual_title'],
+                'cost' => $this->settings['price'],
                 'calc_tax' => 'per_item'
             ));
         }
@@ -145,7 +186,7 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
     {
         $formattedOrder = $this->format_notification_order($order);
 
-        if ($this->get_instance_option('all') == 'yes' || $formattedOrder !== false) {
+        if ($this->settings['all'] == 'yes' || $formattedOrder !== false) {
             $args = array(
                 'body' => json_encode(array(
                     'email' => get_option('admin_email'),

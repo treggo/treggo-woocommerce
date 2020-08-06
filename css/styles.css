@@ -1,0 +1,46 @@
+/** SETTINGS */
+
+h3.treggo-info {
+	color: #00baff;
+	font-size: 1.5em !important;
+	font-weight: 400;
+}
+
+/** WELCOME PAGE */
+div.treggo-container {
+	width: 100%;
+	padding-top: 20px;
+	max-width: 600px;
+	margin: 0 auto;
+}
+div.treggo-container img.banner {
+	max-width: 600px;
+}
+div.treggo-container p {
+	font-size: 16px;
+}
+div.treggo-container a.button,
+div.treggo-container a.button:hover,
+div.treggo-container a.button:active,
+div.treggo-container a.button:focus {
+	background-color: #00baff;
+	border: 1px solid #00baff;
+	border-color: #00baff;
+	border-radius: 6px;
+	border-width: 1px;
+	color: #ffffff;
+	display: block;
+	width: 230px;
+	margin: 0 auto;
+	font-size: 14px;
+	font-weight: normal;
+	letter-spacing: 0px;
+	line-height: normal;
+	padding: 12px 18px 12px 18px;
+	text-align: center;
+	text-decoration: none;
+	border-style: solid;
+}
+div.treggo-container img.footer {
+	width: 100px;
+}
