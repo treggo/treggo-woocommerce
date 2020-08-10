@@ -33,6 +33,8 @@ if (!in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get
 
 class Treggo_WooCommerce_Shipping {
 
+    private $tag_type;
+
     private $order_id;
 
     public function __construct()
@@ -45,7 +47,8 @@ class Treggo_WooCommerce_Shipping {
 
         // Single order print action
         add_action('woocommerce_order_actions', array($this, 'treggo_add_print_single_tag_action'));
-        add_action('woocommerce_order_action_treggo_print_single_tag', array($this, 'treggo_print_single_tag_action'));
+        add_action('woocommerce_order_action_treggo_print_single_tag_a4', array($this, 'treggo_print_single_tag_a4_action'));
+        add_action('woocommerce_order_action_treggo_print_single_tag_cebra', array($this, 'treggo_print_single_tag_cebra_action'));
 
         // Bulk order print action
         add_filter('bulk_actions-edit-shop_order', array($this, 'treggo_add_print_bulk_tag_action'), 20, 1);
@@ -144,31 +147,68 @@ class Treggo_WooCommerce_Shipping {
 
     function treggo_add_print_single_tag_action($actions)
     {
-        // $actions['treggo_print_single_tag'] = __('Treggo - Imprimir etiqueta', 'treggo');
-        $actions['treggo_print_single_tag_a4'] = __('Treggo - Imprimir etiqueta A4', 'treggo');
-        return $actions;
-    }
-
-    function treggo_print_single_tag_action($order_id)
-    {
-        $order = new WC_Order($order_id);
         include_once('includes/class-treggo-shipping-method.php');
 
         $Treggo_Shipping_Method = new Treggo_Shipping_Method();
         $Treggo_Shipping_Method->init();
-        $Treggo_Shipping_Method->treggo_print_tags([$order]);
+
+        if ($Treggo_Shipping_Method->settings['tags_type_a4']) {
+            $actions['treggo_print_single_tag_a4'] = __('Treggo - Imprimir etiqueta A4', 'treggo');
+        }
+        if ($Treggo_Shipping_Method->settings['tags_type_cebra']) {
+            $actions['treggo_print_single_tag_cebra'] = __('Treggo - Imprimir etiqueta Cebra', 'treggo');
+        }
+
+        return $actions;
+    }
+
+    function treggo_print_single_tag_a4_action($order_id)
+    {
+        return $this->treggo_print_single_tag_action($order_id, 'a4');
+    }
+
+    
+    function treggo_print_single_tag_cebra_action($order_id)
+    {
+        return $this->treggo_print_single_tag_action($order_id, 'zebra');
+    }
+
+    function treggo_print_single_tag_action($order_id, $type)
+    {
+        $order = new WC_Order($order_id);
+        include_once('includes/class-treggo-shipping-method.php');
+        $Treggo_Shipping_Method = new Treggo_Shipping_Method();
+        $Treggo_Shipping_Method->init();
+        $Treggo_Shipping_Method->treggo_print_tags([$order], $type);
     }
 
     function treggo_add_print_bulk_tag_action($bulk_actions)
     {
-        $bulk_actions['treggo_print_bulk_tag'] = __('Treggo - Imprimir etiquetas', 'treggo');
+        include_once('includes/class-treggo-shipping-method.php');
+
+        $Treggo_Shipping_Method = new Treggo_Shipping_Method();
+        $Treggo_Shipping_Method->init();
+
+        if ($Treggo_Shipping_Method->settings['tags_type_a4'] === 'yes') {
+            $bulk_actions['treggo_print_bulk_tag_a4'] = __('Treggo - Imprimir etiquetas A4', 'treggo');
+        }
+        if ($Treggo_Shipping_Method->settings['tags_type_cebra'] === 'yes') {
+            $bulk_actions['treggo_print_bulk_tag_cebra'] = __('Treggo - Imprimir etiquetas Cebra', 'treggo');
+        }
+
         return $bulk_actions;
     }
 
     function treggo_print_bulk_tag_action($redirect_to, $action, $post_ids)
     {
 
-        if ($action === 'treggo_print_bulk_tag') {
+        if ($action === 'treggo_print_bulk_tag_a4') {
+            $type = 'a4';
+        } else if ($action === 'treggo_print_bulk_tag_cebra') {
+            $type = 'zebra';
+        }
+
+        if (substr($action, 0, strlen('treggo_print_bulk_tag')) === 'treggo_print_bulk_tag') {
             $processed_ids = array();
             $orders = array();
 
@@ -182,7 +222,7 @@ class Treggo_WooCommerce_Shipping {
 
             $Treggo_Shipping_Method = new Treggo_Shipping_Method();
             $Treggo_Shipping_Method->init();
-            $Treggo_Shipping_Method->treggo_print_tags($orders);
+            $Treggo_Shipping_Method->treggo_print_tags($orders, $type);
         }
         return $redirect_to;
     }
@@ -191,7 +231,9 @@ class Treggo_WooCommerce_Shipping {
         $content = file_get_contents(__DIR__ . '/templates/welcome.html');
         $replaces = array(
             '@EMAIL' => get_option('admin_email'),
-            '@SETTINGS' => admin_url('/admin.php?page=wc-settings&tab=shipping&section=treggo')
+            '@SETTINGS' => admin_url('/admin.php?page=wc-settings&tab=shipping&section=treggo'),
+            '@LOGO' => plugins_url('assets/logo.png', __FILE__),
+            '@BAR' => plugins_url('assets/blue-bar.png', __FILE__)
         );
         foreach($replaces as $key => $val){
             $content = str_replace($key, $val, $content);

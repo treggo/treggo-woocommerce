@@ -5,9 +5,10 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
 
     private $endpoint = 'https://api.treggo.co/1/integrations/woocommerce';
 
-    public function __construct()
+    public function __construct($instance_id = 0)
     {
         $this->id = 'treggo';
+        $this->instance_id = $instance_id;
         $this->method_title = __('Treggo Shipping', 'treggo');
         $this->method_description = __('Método de envío personalizado para Treggo', 'treggo');
         $this->supports = array('shipping-zones', 'settings');
@@ -114,24 +115,7 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
                 'label' => __('Habilitado', 'treggo'),
                 'type' => 'checkbox',
                 'default' => 'yes'
-            ),
-            'tags_type_zpl' => array(
-                'title' => __('Cebra ZPL', 'treggo'),
-                'label' => __('Habilitado', 'treggo'),
-                'type' => 'checkbox',
-                'default' => 'yes'
-            ),
-            /*'tags_type' => array(
-                'title' => __('Formato', 'treggo'),
-                'type' => 'select',
-                'description' => __('Formato en el que se solicitarán las etiquetas', 'treggo'),
-                'default' => 'a4',
-                'options' => array(
-                    'a4' => 'A4 - PDF',
-                    'cebra' => 'Cebra - PDF',
-                    'zpl' => 'Cebra - ZPL'
-                )
-            )*/
+            )
         );
     }
 
@@ -307,7 +291,7 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
         }
     }
 
-    public function treggo_print_tags($orders)
+    public function treggo_print_tags($orders, $type)
     {
         foreach ($orders as $key => $order) {
             $formattedOrder = $this->format_notification_order($order);
@@ -324,7 +308,7 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
                     'email' => get_option('admin_email'),
                     'dominio' => get_option('siteurl'),
                     'orders' => $orders,
-                    'type' => 'a4'
+                    'type' => $type
                 )),
                 'headers' => array(
                     'Content-Type' => 'application/json'

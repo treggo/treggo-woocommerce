@@ -1,5 +1,4 @@
 /** SETTINGS */
-
 h3.treggo-info {
 	color: #00baff;
 	font-size: 1.5em !important;
@@ -13,7 +12,11 @@ div.treggo-container {
 	max-width: 600px;
 	margin: 0 auto;
 }
-div.treggo-container img.banner {
+div.treggo-container a.banner {
+	display: block;
+    box-shadow: none;
+}
+div.treggo-container a.banner img {
 	max-width: 600px;
 }
 div.treggo-container p {
@@ -32,6 +35,7 @@ div.treggo-container a.button:focus {
 	display: block;
 	width: 230px;
 	margin: 0 auto;
+	margin-top: 30px;
 	font-size: 14px;
 	font-weight: normal;
 	letter-spacing: 0px;
