@@ -110,8 +110,8 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
                 'type' => 'checkbox',
                 'default' => 'yes'
             ),
-            'tags_type_cebra' => array(
-                'title' => __('Cebra PDF', 'treggo'),
+            'tags_type_zebra' => array(
+                'title' => __('Zebra PDF', 'treggo'),
                 'label' => __('Habilitado', 'treggo'),
                 'type' => 'checkbox',
                 'default' => 'yes'
