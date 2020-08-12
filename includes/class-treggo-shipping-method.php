@@ -28,11 +28,20 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
     function init_form_fields()
     {
         $this->form_fields = array(
-            'info' => array(
-                'title' => __('( ! ) No podrás utilizar este método de envío hasta que haya un acuerdo comercial sobre las coberturas.', 'treggo'),
+            'warning' => array(
+                'title' => __('No podrás utilizar este método de envío hasta que haya un acuerdo comercial sobre las coberturas.', 'treggo'),
                 'type' => 'title',
-                'default' => 'yes',
-                'class' => 'treggo-info'
+                'class' => 'treggo-warning dashicons-before dashicons-warning'
+            ),
+            'info' => array(
+                'title' => __('Recordá agregar este método de envío dentros de las zonas de envío para que esté disponible.', 'treggo'),
+                'type' => 'title',
+                'class' => 'treggo-info dashicons-before dashicons-info'
+            ),
+            'warning-2' => array(
+                'title' => __('El multiplicador dejó de ser un porcentaje. ¡Revisá su valor!', 'treggo'),
+                'type' => 'title',
+                'class' => 'treggo-info dashicons-before dashicons-warning'
             ),
             'enabled' => array(
                 'title' => __('Estado', 'treggo'),
@@ -60,9 +69,26 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
             ),
             'multiplicador' => array(
                 'title' => __('Multiplicador del importe', 'treggo'),
-                'type' => 'number',
-                'description' => __('Afectar la cotización para agregar o quitar comisiones multiplicando el precio por este valor', 'treggo'),
-                'default' => 1
+                'type' => 'price',
+                'description' => __('Afectar la cotización para agregar o quitar comisiones multiplicando el precio por este valor.', 'treggo'), 'default' => 1
+            ),
+            'multiplicador-help' => array(
+                'title' => '',
+                'type' => 'title',
+                'description' => __('<b>Ejemplos:</b>', 'treggo'),
+                'class' => 'multiplier-help'
+            ),
+            'mutliplicador-help-1' => array(
+                'title' => '',
+                'type' => 'title',
+                'description' => __('• <b>0.5</b> = 50% del total', 'treggo'),
+                'class' => 'multiplier-help-item'
+            ),
+            'mutliplicador-help-2' => array(
+                'title' => '',
+                'type' => 'title',
+                'description' => __('• <b>1.21</b> = 21% de sobrecargo', 'treggo'),
+                'class' => 'multiplier-help-item'
             ),
             't2' => array(
                 'title' => __('Método de envío manual', 'treggo'),
