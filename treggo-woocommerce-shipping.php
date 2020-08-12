@@ -4,7 +4,7 @@
  * Plugin Name: Treggo Shipping
  * Plugin URI: https://treggo.co
  * Description: Custom Shipping Method for Treggo for WooCommerce
- * Version: 2.1
+ * Version: 2.2
  * Author: Treggo.Co
  * Author URI: https://treggo.co
  * License: GPL-3.0+
