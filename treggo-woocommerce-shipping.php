@@ -4,7 +4,7 @@
  * Plugin Name: Treggo Shipping
  * Plugin URI: https://treggo.co
  * Description: Custom Shipping Method for Treggo for WooCommerce
- * Version: 2.2
+ * Version: 2.3
  * Author: Treggo.Co
  * Author URI: https://treggo.co
  * License: GPL-3.0+
@@ -18,7 +18,7 @@ if (!defined('ABSPATH') || !defined('WPINC')) {
     function treggo_no_direct_access() {
       die(__('Se produjo un error al acceder a constantes necesarias para la operabilidad del plugin', 'treggo'));
     }
-    register_activation_hook( __FILE__, 'treggo_no_direct_access');
+    register_activation_hook(__FILE__, 'treggo_no_direct_access');
     return;
 }
 
@@ -27,15 +27,13 @@ if (!in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get
     function treggo_no_woocommerce_installed() {
       die(__('No se detectó la instalación del plugin WooCommerce, necesario para la operabilidad de este plugin', 'treggo'));
     }
-    register_activation_hook( __FILE__, 'treggo_no_woocommerce_installed');
+    register_activation_hook(__FILE__, 'treggo_no_woocommerce_installed');
     return;
 }
 
 class Treggo_WooCommerce_Shipping {
 
-    private $tag_type;
-
-    private $order_id;
+    private $order;
 
     public function __construct()
     {

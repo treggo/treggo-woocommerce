@@ -3,8 +3,6 @@
 class Treggo_Shipping_Method extends WC_Shipping_Method
 {
 
-    private $endpoint = 'https://api.treggo.co/1/integrations/woocommerce';
-
     public function __construct($instance_id = 0)
     {
         $this->id = 'treggo';
@@ -18,14 +16,21 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
         $this->title = __('Treggo Shipping', 'treggo');
     }
 
-    function init()
+    public function get_endpoint()
+    {
+        $woocommerce_country = strtolower(get_option('woocommerce_default_country'));
+        $country = strpos($woocommerce_country, ':') !== false ? explode(':', $woocommerce_country)[0] : $woocommerce_country;
+        return 'https://api.' . $country . '.treggo.co/1/integrations/woocommerce';
+    }
+
+    public function init()
     {
         $this->init_form_fields();
         $this->init_settings();
         add_action('woocommerce_update_options_shipping_' . $this->id, array($this, 'process_admin_options'));
     }
 
-    function init_form_fields()
+    public function init_form_fields()
     {
         $this->form_fields = array(
             'warning' => array(
@@ -145,7 +150,7 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
         );
     }
 
-    public function calculate_shipping($package = Array())
+    public function calculate_shipping($package = array())
     {
         if ($this->settings['automatic'] == 'yes') {
             $payload = array(
@@ -164,27 +169,32 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
             );
 
             try {
-                $response = wp_remote_post($this->endpoint . '/rates', $args);
+                $response = wp_remote_post($this->get_endpoint() . '/rate', $args);
                 $body = wp_remote_retrieve_body($response);
 
-                $rate = json_decode($body);
+                $rates = json_decode($body, true);
 
-                if (!isset($rate->message)) {
-                    $this->add_rate(array(
-                        'id' => $this->id,
-                        'label' => $this->settings['title'],
-                        'cost' => $rate->total_price * $this->settings['multiplicador'],
-                        'calc_tax' => 'per_item'
-                    ));
+                if (is_array($rates)) {
+                    foreach ($rates as $rate) {
+                        if (isset($rate['total_price']) && is_numeric($rate['total_price'])) {
+                            $this->add_rate(array(
+                                'id' => $this->id . '-' . $rate['code'],
+                                'label' => $this->settings['title'] . (strlen($rate['service']) > 0 ? ' - ' . $rate['service'] : ''),
+                                'cost' => $rate['total_price'] * $this->settings['multiplicador'],
+                                'calc_tax' => 'per_item',
+                                'meta_data' => $rate
+                            ));
+                        }
+                    }
                 }
             } catch (\Exception $e) {
-                throw new \Exception('Error al comunicar con el servidor de Treggo: ' . $e->getMessage()); 
+                throw new \Exception('Error al comunicar con el servidor de Treggo: ' . $e->getMessage());
             }
         }
 
         if ($this->settings['manual'] == 'yes') {
             $this->add_rate(array(
-                'id' => $this->id . '-z0',
+                'id' => $this->id . '-manual',
                 'label' => $this->settings['manual_title'],
                 'cost' => $this->settings['price'],
                 'calc_tax' => 'per_item'
@@ -210,7 +220,7 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
             );
 
             try {
-                $response = wp_remote_post($this->endpoint . '/notifications', $args);
+                $response = wp_remote_post($this->get_endpoint() . '/notifications', $args);
                 $body = wp_remote_retrieve_body($response);
 
                 $response = json_decode($body);
@@ -220,13 +230,60 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
                     $order->add_order_note('Estado actualizado en Treggo');
                 }
             } catch (\Exception $e) {
-                throw new \Exception('Error al comunicar con el servidor de Treggo: ' . $e->getMessage()); 
+                throw new \Exception('Error al comunicar con el servidor de Treggo: ' . $e->getMessage());
             }
         }
     }
 
     private function format_notification_order($order)
     {
+        // Shipping information
+        $shipments = [];
+        $isTreggo = false;
+        foreach ($order->get_items('shipping') as $item) {
+            if (strpos($item['method_id'], $this->id) !== false) {
+                $isTreggo = true;
+            }
+            $data = (array) $item->get_data();
+
+            $code = null;
+            $service = null;
+            $name = null;
+
+            if (is_array($data['meta_data'])) {
+                foreach ($data['meta_data'] as $meta_data) {
+                    $meta = $meta_data->get_data();
+                    switch ($meta['key']) {
+                        case 'name':
+                            $name = $meta['value'];
+                            break;
+                        case 'service':
+                            $service = $meta['value'];
+                            break;
+                        case 'code':
+                            $code = $meta['value'];
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+
+            array_push($shipments, array(
+                'id' => $data['id'],
+                'order_id' => $data['order_id'],
+                'method_id' => $data['method_id'],
+                'total' => $data['total'],
+                'code' => $code,
+                'service' => $service,
+                'name' => $name
+            ));
+        }
+
+        if (!$isTreggo) {
+            return false;
+        }
+
         $items = [];
         foreach ($order->get_items() as $item) {
             $product = new WC_Product($item['product_id']);
@@ -244,39 +301,20 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
             ));
         }
 
-        // Shipping information
-        $shipments = [];
-        $isTreggo = false;
-        foreach ($order->get_items('shipping') as $item) {
-            if ($item['method_id'] == 'treggo') {
-                $isTreggo = true;
-            }
-            $data = (array) $item->get_data();
-            array_push($shipments, array(
-                'id' => $data['id'],
-                'order_id' => $data['order_id'],
-                'method_id' => $data['method_id'],
-                'total' => $data['total']
-            ));
-        }
-
-        if ($isTreggo) {
-            return array(
-                'status' => $order->get_status(),
-                'payment_method' => array(
-                    'code' => $order->get_payment_method(),
-                    'title' => $order->get_payment_method_title()
-                ),
-                'items' => $items,
-                'shipments' => $shipments,
-                'customer_note' => $order->get_customer_note(),
-                'phone' => $order->get_billing_phone(),
-                'email' => $order->get_billing_email(),
-                'shipping' => $order->get_address('shipping')
-            );
-        } else {
-            return false;
-        }
+        return array(
+            'status' => $order->get_status(),
+            'payment_method' => array(
+                'code' => $order->get_payment_method(),
+                'title' => $order->get_payment_method_title()
+            ),
+            'items' => $items,
+            'shipments' => $shipments,
+            'customer_note' => $order->get_customer_note(),
+            'phone' => $order->get_billing_phone(),
+            'email' => $order->get_billing_email(),
+            'shipping' => $order->get_address('shipping'),
+            'date' => strval($order->get_date_created())
+        );
     }
 
     public function treggo_signup()
@@ -284,21 +322,19 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
         $payload = array(
             'email' => get_option('admin_email'),
             'store' => array(
-                    'nombre' => get_bloginfo(),
-                    'dominio' => get_option('siteurl'),
-                    'email' => get_option('admin_email'),
-                    'store_address' => get_option('woocommerce_store_address'),
-                    'store_address_2' => get_option('woocommerce_store_address_2'),
-                    'store_city' => get_option('woocommerce_store_city'),
-                    'store_postcode' => get_option('woocommerce_store_postcode'),
-                    'store' => wc_get_page_permalink('shop'),
-                    'country' => WC()
-                        ->countries
-                        ->countries[
-                            WC()
-                            ->countries
-                            ->get_base_country()
-                        ]
+                'nombre' => get_bloginfo(),
+                'dominio' => get_option('siteurl'),
+                'email' => get_option('admin_email'),
+                'store_address' => get_option('woocommerce_store_address'),
+                'store_address_2' => get_option('woocommerce_store_address_2'),
+                'store_city' => get_option('woocommerce_store_city'),
+                'store_postcode' => get_option('woocommerce_store_postcode'),
+                'store' => wc_get_page_permalink('shop'),
+                'country' => WC()
+                    ->countries
+                    ->countries[WC()
+                    ->countries
+                    ->get_base_country()]
             )
         );
 
@@ -311,7 +347,7 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
         );
 
         try {
-            $response = wp_remote_post($this->endpoint . '/signup', $args);
+            wp_remote_post($this->get_endpoint() . '/signup', $args);
         } catch (\Exception $e) {
             return;
         }
@@ -342,7 +378,7 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
             );
 
             try {
-                $response = wp_remote_post($this->endpoint . '/tags', $args);
+                $response = wp_remote_post($this->get_endpoint() . '/tags', $args);
                 $body = wp_remote_retrieve_body($response);
 
                 $filename = 'treggo-etiquetas-' . date('Ymd') . '.pdf';
@@ -352,9 +388,8 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
                 echo $body;
                 exit;
             } catch (\Exception $e) {
-                throw new \Exception('Error al comunicar con el servidor de Treggo: ' . $e->getMessage()); 
+                throw new \Exception('Error al comunicar con el servidor de Treggo: ' . $e->getMessage());
             }
         }
     }
-
 }
