@@ -3,6 +3,8 @@
 class Treggo_Shipping_Method extends WC_Shipping_Method
 {
 
+    const VERSION = "2.3";
+
     public function __construct($instance_id = 0)
     {
         $this->id = 'treggo';
@@ -237,7 +239,6 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
 
     private function format_notification_order($order)
     {
-        // Shipping information
         $shipments = [];
         $isTreggo = false;
         foreach ($order->get_items('shipping') as $item) {
@@ -301,6 +302,9 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
             ));
         }
 
+        global $woocommerce;
+        global $wp_version;
+
         return array(
             'status' => $order->get_status(),
             'payment_method' => array(
@@ -313,12 +317,18 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
             'phone' => $order->get_billing_phone(),
             'email' => $order->get_billing_email(),
             'shipping' => $order->get_address('shipping'),
-            'date' => strval($order->get_date_created())
+            'date' => strval($order->get_date_created()),
+
+            'version_plugin' => Treggo_Shipping_Method::VERSION,
+            'version_wordpress' => $wp_version,
+            'version_woocommerce' => $woocommerce->version
         );
     }
 
     public function treggo_signup()
     {
+        global $woocommerce;
+        global $wp_version;
         $payload = array(
             'email' => get_option('admin_email'),
             'store' => array(
@@ -334,7 +344,10 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
                     ->countries
                     ->countries[WC()
                     ->countries
-                    ->get_base_country()]
+                    ->get_base_country()],
+                'version_plugin' => Treggo_Shipping_Method::VERSION,
+                'version_wordpress' => $wp_version,
+                'version_woocommerce' => $woocommerce->version
             )
         );
 
