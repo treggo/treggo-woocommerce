@@ -3,7 +3,7 @@
 class Treggo_Shipping_Method extends WC_Shipping_Method
 {
 
-    const VERSION = "2.3";
+    const VERSION = "2.4";
 
     public function __construct($instance_id = 0)
     {
@@ -206,7 +206,7 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
 
     public function treggo_notify($order)
     {
-        $formattedOrder = $this->format_notification_order($order);
+        $formattedOrder = $this->format_notification_order($order, false);
 
         if ($this->settings['all'] == 'yes' || $formattedOrder !== false) {
             $args = array(
@@ -237,10 +237,10 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
         }
     }
 
-    private function format_notification_order($order)
+    private function format_notification_order($order, $force)
     {
         $shipments = [];
-        $isTreggo = false;
+        $isTreggo = $force;
         foreach ($order->get_items('shipping') as $item) {
             if (strpos($item['method_id'], $this->id) !== false) {
                 $isTreggo = true;
@@ -369,7 +369,7 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
     public function treggo_print_tags($orders, $type)
     {
         foreach ($orders as $key => $order) {
-            $formattedOrder = $this->format_notification_order($order);
+            $formattedOrder = $this->format_notification_order($order, true);
             if ($formattedOrder !== false) {
                 $orders[$key] = $formattedOrder;
             } else {
