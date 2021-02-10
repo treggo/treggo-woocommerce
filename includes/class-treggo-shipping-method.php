@@ -208,7 +208,7 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
     {
         $formattedOrder = $this->format_notification_order($order, false);
 
-        if ($this->settings['all'] == 'yes' || $formattedOrder !== false) {
+        if ($this->settings['all'] == 'yes' || $formattedOrder->$isTreggo == true ) {
             $args = array(
                 'body' => json_encode(array(
                     'email' => get_option('admin_email'),
@@ -241,6 +241,8 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
     {
         $shipments = [];
         $isTreggo = $force;
+        $courier = '';
+
         foreach ($order->get_items('shipping') as $item) {
             if (strpos($item['method_id'], $this->id) !== false) {
                 $isTreggo = true;
@@ -269,6 +271,7 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
                     }
                 }
             }
+            $courier = $data['method_id'];
 
             array_push($shipments, array(
                 'id' => $data['id'],
@@ -279,10 +282,6 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
                 'service' => $service,
                 'name' => $name
             ));
-        }
-
-        if (!$isTreggo) {
-            return false;
         }
 
         $items = [];
@@ -321,7 +320,9 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
 
             'version_plugin' => Treggo_Shipping_Method::VERSION,
             'version_wordpress' => $wp_version,
-            'version_woocommerce' => $woocommerce->version
+            'version_woocommerce' => $woocommerce->version,
+            'treggo_shipping' => $isTreggo,
+            'courier' => $courier
         );
     }
 
