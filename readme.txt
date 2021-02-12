@@ -18,6 +18,9 @@ Para darte de alta accede a http://empresas.treggocity.com/ e inscribite como em
 
 == Changelog ==
 
+= 2.5 =
+* Solucionado error orden vacía
+
 = 2.4 =
 * Solucionado error al imprimir etiquetas
 
