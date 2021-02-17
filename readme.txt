@@ -3,7 +3,7 @@ Contributors: treggo
 Tags: woocommerce, shipping, argentina, treggo, ecommerce, delivery
 Requires at least: 4.6
 Tested up to: 5.5.1
-Stable tag: 2.4
+Stable tag: 2.5
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Requires PHP: 5.6

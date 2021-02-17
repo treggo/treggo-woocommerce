@@ -3,7 +3,7 @@
 class Treggo_Shipping_Method extends WC_Shipping_Method
 {
 
-    const VERSION = "2.4";
+    const VERSION = "2.5";
 
     public function __construct($instance_id = 0)
     {
