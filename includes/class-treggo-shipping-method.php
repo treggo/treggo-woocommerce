@@ -208,7 +208,7 @@ class Treggo_Shipping_Method extends WC_Shipping_Method
     {
         $formattedOrder = $this->format_notification_order($order, false);
 
-        if ($this->settings['all'] == 'yes' || $formattedOrder->$isTreggo == true ) {
+        if ($this->settings['all'] == 'yes' || $formattedOrder['treggo_shipping']) {
             $args = array(
                 'body' => json_encode(array(
                     'email' => get_option('admin_email'),
